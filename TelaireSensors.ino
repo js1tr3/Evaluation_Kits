@@ -1,7 +1,7 @@
 #define USB  //enable or disable monitoring on serial output, alternate with display, 19200 baud
 //#define OELCD_OP    //enable or disable LCD Output, alternate with serial output
 
-#define DustSensor true  // true or false dependent upon if dust sensor present, true by default as we cannot handshake
+#define DustSensor false //true  // true or false dependent upon if dust sensor present, true by default as we cannot handshake
 #define Can_Msg_ID 0x100
 
 #include "Wire.h"
@@ -54,6 +54,8 @@ void setup()
         delay(100);
     }
     Serial.println("CAN BUS Shield init ok!");
+
+  CAN.setMode(MCP_NORMAL);   // Change to normal mode to allow messages to be transmitted
 
   Wire.begin();
 
@@ -316,14 +318,27 @@ void getT9602data() //gets temp and hum values from T9602 over I2C
   data[2] = Wire.read();
   data[3] = Wire.read();
 
-
+// dataC[4]=data[0];
+// dataC[5]=data[1];
+// dataC[6]=data[2];
+// dataC[7]=data[3];
+ 
   // humidity = (rH_High [5:0] x 256 + rH_Low [7:0]) / 16384 x 100
   humidity = (float)(((data[0] & 0x3F ) << 8) + data[1]) / 16384.0 * 100.0;
   humidity = round(humidity);
   // temperature = (Temp_High [7:0] x 64 + Temp_Low [7:2]/4 ) / 16384 x 165 - 40
   temperature = (float)((unsigned)(data[2]  * 64) + (unsigned)(data[3] >> 2 )) / 16384.0 * 165.0 - 40.0;
   temperature = round(temperature * 10);
+  
+ dataC[4]=(int)temperature&0xFF ;
+ dataC[5]=(int)temperature>>8;
+ 
   temperature = temperature / 10;
+  
+unsigned int tempH=round(humidity*500);
+ dataC[6]=tempH&0xFF;
+ dataC[7]=tempH>>8;
+ 
 
 }
 
