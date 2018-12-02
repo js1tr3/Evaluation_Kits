@@ -13,7 +13,7 @@
 // holds the update flags defined above
 volatile uint8_t bUpdateFlagsShared;
 
-unsigned long samplerate = 5000;  // 5 second dust sample rate
+unsigned long samplerate = 500;  // 0.5 second dust sample rate
 unsigned long sampletime;         // variable to monitor time of each sample start
 int SampleCount;                  // variable to define which number sample in series
 int NoOfSamples = 24;             //maximum 24
@@ -34,7 +34,3 @@ volatile uint16_t unPM2_InShared;
 // They do not need to be volatile as they are only used in the ISR. If we wanted
 // to refer to these in loop and the ISR then they would need to be declared volatile
 uint32_t ulPM2_Start;
-
-
-
-

@@ -1,11 +1,14 @@
-//#define USB  //enable or disable monitoring on serial output, alternate with display, 19200 baud
-#define OELCD_OP    //enable or disable LCD Output, alternate with serial output
+#define USB  //enable or disable monitoring on serial output, alternate with display, 19200 baud
+//#define OELCD_OP    //enable or disable LCD Output, alternate with serial output
 
 #define DustSensor true  // true or false dependent upon if dust sensor present, true by default as we cannot handshake
+#define Can_Msg_ID 0x100
 
 #include "Wire.h"
+#include <mcp_can.h>
 #include <SPI.h>
 #include <PinChangeInterrupt.h>
+
 
 //  Width Guide      "---------------------"
 #define SplashScreen "Telaire eval, v1.4"
@@ -30,12 +33,27 @@ unsigned int Offset = 0;
 
 //_______________________________________________setup_________________________________
 
+
+// the cs pin of the version after v1.1 is default to D9
+// v0.9b and v1.0 is default D10
+const int SPI_CS_PIN = 9;
+
+MCP_CAN CAN(SPI_CS_PIN);                                    // Set CS pin
+
 void setup()
 {
 #ifdef USB //output to PC through USB
   Serial.begin(19200);  // start serial for output
   Serial.println(SplashScreen);
 #endif
+
+   while (CAN_OK != CAN.begin(MCP_ANY, CAN_500KBPS, MCP_16MHZ));// CAN.begin(CAN_500KBPS))              // init can bus : baudrate = 500k
+    {
+        Serial.println("CAN BUS Shield init fail");
+        Serial.println(" Init CAN BUS Shield again");
+        delay(100);
+    }
+    Serial.println("CAN BUS Shield init ok!");
 
   Wire.begin();
 
@@ -114,6 +132,8 @@ void setup()
 }
 
 //___________________________________________________loop______________________
+//unsigned char stmp[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+byte dataC[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
 
 void loop() {
   if (millis() >= (samplerate + sampletime))
@@ -216,6 +236,18 @@ void loop() {
     }
     Serial.println ("");
 #endif
+
+dataC[0]=CO2ppmValue&0xFF;
+dataC[1]=(CO2ppmValue>>8)&0xFF;
+
+  // send data:  ID = 0x100, Standard CAN Frame, Data length = 8 bytes, 'data' = array of data bytes to send
+  byte sndStat = CAN.sendMsgBuf(Can_Msg_ID, 0, 8, dataC);
+  if(sndStat == CAN_OK){
+  //  Serial.println("Message Sent Successfully!");
+  } else {
+    Serial.println("Error Sending Message...");
+  }
+  //delay(100);   // send data per 100ms
   }
 }
 
@@ -263,8 +295,6 @@ void displayReading(String aa, String bb, String cc, int dd) {
   display.setTextSize(1);
   display.setCursor(25, 57);
   display.print(bb);  //aux info
-
-
 
   display.display();
 }
@@ -447,5 +477,3 @@ void calcPM2()
     bUpdateFlagsShared |= PM2_FLAG;
   }
 }
-
-
